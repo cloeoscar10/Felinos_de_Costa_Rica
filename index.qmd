@@ -1,0 +1,265 @@
+---
+title: "Index"
+author: "Oscar Vásquez-Bolaños"
+format: html
+editor: visual
+---
+
+## Felinos de Costa Rica
+
+La siguiente compilación muestra una visualización de los avistamientos de las diferentes especies de felinos para Costa Rica a través de la plataforma Inaturalist.
+
+```{r}
+#| label: carga de paquetes para el procesamiento de los datos
+#| warning: false
+#| message: false
+#| echo: fenced
+library(tidyverse)
+library(DT)
+library(plotly)
+library(ggthemes)
+library(dplyr)
+setwd("C:/Users/oscar/Desktop/Tarea3")
+```
+
+```{r}
+#| label: importacion de datos
+#| warning: false
+#| message: false
+#| echo: fenced
+felinos <-
+  read_delim(
+    file = "C:/Users/oscar/Desktop/Tarea3/FELINOS.csv",
+    col_select = c(
+      "species",
+      "stateProvince",
+      "locality",
+      "eventDate",
+      "decimalLongitude",
+      "decimalLatitude",
+      "month"
+    ) 
+  )
+```
+
+```{r}
+#| label: renombrar las columnas de interes
+#| warning: false
+#| message: false
+#| echo: fenced
+felinos <-
+  felinos |>
+  rename(
+    especies = species,
+    provincia = stateProvince,
+    localidad = locality,
+    fecha = eventDate,
+    long = decimalLongitude,
+    lat = decimalLatitude,
+    mes = month
+  )
+
+felinos
+```
+
+```{r}
+#| label: definicion de la columna fecha
+#| warning: false
+#| message: false
+#| echo: fenced
+
+  felinos |>
+  mutate(fecha = as.Date(fecha, format = "%d/%m/%Y"))
+```
+Una vez seleccionados los datos de interés se generó una tabla dinámica con las especies de felino por localidad y fecha del reporte de este avistamiento (Tab. 1).
+
+```{r}
+#| label: tabla de felinos en cr
+#| warning: false
+#| message: false
+
+felinos|> 
+  dplyr::select(especies, provincia, localidad, fecha) |>
+  datatable (options = list (
+    pageLength = 5,
+    language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
+  ))
+```
+Tabla 1. Registros de las especies de felinos por fecha y localidad.
+
+
+```{r}
+#| label: separacion de la fecha
+#| warning: false
+#| message: false
+#| echo: fenced
+felinos <-
+  felinos |>
+  mutate(year = as.numeric(format(fecha,'%Y'))) |>
+  mutate(month = as.numeric(format(fecha,'%m'))) |> 
+  arrange((month))|>
+  mutate(day = as.numeric(format(fecha,'%d')))
+```
+
+Seguidamente se generó un gráfico de barras (Fig. 1) con la ocurrencia de las especies de felinos por mes a lo largo del año. 
+```{r}
+#| label: grafico de especies por mes
+#| warning: false
+#| message: false
+
+grafico_especies_mes <-
+felinos |>
+  ggplot(aes(x = mes, fill = especies))+
+  scale_x_continuous(breaks = seq(1,12,1))+
+  scale_x_continuous(breaks = seq(1,12,1),
+                     labels = c("1" =
+                    "Ene", "2" = "Feb",                     "3" = "Mar", "4" =
+                    "Abr", "5" = "May", 
+                    "6" = "Jun", "7" =
+                    "Jul", "8" = "Ago",
+                    "9" ="Sep", "10" =                     "Oct", "11" = 
+                    "Nov", "12" = 
+                    "Dic"))+
+  geom_bar() +
+  ggtitle("Registros mensuales por especie de felino") +
+  xlab("Meses") +
+  ylab("Observaciones") +
+  labs(fill = "Especies") +
+  theme_economist()
+
+library(plotly)
+# Gráfico de barras plotly
+ggplotly(grafico_especies_mes) |> 
+  config(locale = 'es')
+```
+Figura 1. Ocurrencia mensual de especies de felinos en Costa Rica.
+
+
+Posteriormente se cargo la capa shape de las áreas silestres protegidas y se visualizó junto con la capa shape de la línea continental de Costa Rica, obtenida del Atlas de Costa Rica del TEC 2011. 
+```{r}
+#| label: SF conjunto de funciones para datos vectoriales, estándar Simple Features.
+#| warning: false
+#| message: false
+#| echo: fenced
+library(sf)
+#Carga de shape de áreas protegidas
+ASP <-
+  st_read(
+    "C:/Users/oscar/Desktop/Tarea3/ASP.shp",
+    quiet = TRUE # quiet previene el despliegue de mensajes
+  )
+st_crs(ASP)
+
+#Transformación de CRS del objeto ASP de crtm05 a WGS84 (EPSG = 4326)
+ASP <-
+  ASP |>
+  st_transform(4326)
+
+```
+
+```{r}
+
+plot(ASP$geometry, 
+    extent = st_bbox(c(xmin = -86.0, xmax = -82.3, ymin = 8.0, ymax = 11.3)),
+  main = "Áreas Silvestres Protegidas",
+  axes = TRUE,
+  graticule = TRUE,
+  reset = FALSE
+)
+#Segunda capa
+CR <-
+  st_read(
+    "C:/Users/oscar/Documents/SIGparaBiol/Cuencas/AtlasCostaRica2014v.1.2/BaseDatosZip/LineaContinental/LineaContinental/bordecr2008polycrtm05.shp",
+    quiet = TRUE # quiet previene el despliegue de mensajes
+  )
+CR <-
+  CR |>
+  st_transform(4326)
+
+plot(CR$geometry,
+     add = TRUE)
+```
+
+```{r}
+#| label: Paquetes para datos geoespaciales 
+#| warning: false
+#| message: false
+#| echo: false
+library(leafem)
+library(leaflet)
+library(leaflet.extras)
+library(leaflet.providers)
+library(terra)
+library(raster)
+library(rgdal)
+
+```
+
+Seguidamente cargamos la capa ráster de altitud para Costa Rica.
+```{r}
+#| label: Carga de la capa de altitud 
+#| warning: false
+#| message: false
+#| echo: false
+altitud <- rast("C:/Users/oscar/Desktop/Tarea3/altitud.tif")
+
+st_crs(altitud)
+```
+
+
+
+```{r}
+#| label: Paso de csv felinos a SF 
+#| warning: false
+#| message: false
+#| echo: false
+shp_felinos <-
+  st_as_sf(felinos, coords = c("long", "lat"))
+
+st_crs(shp_felinos) <- 4326 #Asignación de coordenadas
+
+st_crs(shp_felinos)
+```
+
+Finalmente se creó una visualización de los puntos reportamos de avistamientos de felinos, desplegados en en el mapa de Costa Rica, a través de capas de libre acceso Google street map y 
+```{r}
+leaflet() |>
+  setView(# centro y nivel inicial de acercamiento
+    lng = -84.19452,
+    lat = 9.572735,
+    zoom = 8) |>
+  addTiles(group = "OpenStreetMap") |>
+  addProviderTiles(providers$Esri.NatGeoWorldMap)|>
+  addRasterImage(raster(altitud))|>
+  addPolygons(
+    # capa de áreas silvestres protegidas (polígonos)
+    data = ASP,
+    color = "black",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 1.0
+  ) |>
+  addCircleMarkers(
+    # capa de registros de presencia (puntos)
+    data = shp_felinos,
+    stroke = F,
+    radius = 4,
+    fillColor = 'blue',
+    fillOpacity = 1,
+    group = "Felinos",
+    popup = paste(
+      paste0("<strong>Especie: </strong>", felinos$especies),
+      paste0("<strong>Localidad: </strong>", felinos$localidad),
+      paste0("<strong>Fecha: </strong>", felinos$fecha)
+    )
+  ) |>
+  addLayersControl(
+    baseGroups = c("OpenStreetMap", "Esri.NatGeoWorldMap"),
+    overlayGroups = c("Felinos", "altitud", "ASP")) |> # control de capas
+  addResetMapButton() |> # botón de reinicio
+  addSearchOSM() |> # búsqueda en OSM
+  addMouseCoordinates() |> # coordenadas del puntero del ratón
+  addScaleBar(position = "bottomleft", options = scaleBarOptions(imperial = FALSE)) |> # barra de escala
+  addMiniMap(position = "bottomleft")  # mapa de ubicación
+```
+
