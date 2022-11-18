@@ -7,13 +7,13 @@ editor: visual
 
 ## Felinos de Costa Rica
 
-La siguiente compilación muestra una visualización de los avistamientos de las diferentes especies de felinos para Costa Rica a través de la plataforma Inaturalist.
+La siguiente compilación muestra una visualización de los avistamientos de las diferentes especies de felinos para Costa Rica a través de reportes de ciencia ciudadana.
 
 ```{r}
 #| label: carga de paquetes para el procesamiento de los datos
 #| warning: false
 #| message: false
-#| echo: fenced
+#| echo: false
 library(tidyverse)
 library(DT)
 library(plotly)
@@ -22,10 +22,12 @@ library(dplyr)
 setwd("C:/Users/oscar/Desktop/Tarea3")
 ```
 
+Para este primer paso se ajusto "tidy" el archivo de de los avistamientos de felinos para Costa Rica.
 ```{r}
 #| label: importacion de datos
 #| warning: false
 #| message: false
+#| code-fold: true
 #| echo: fenced
 felinos <-
   read_delim(
@@ -46,7 +48,7 @@ felinos <-
 #| label: renombrar las columnas de interes
 #| warning: false
 #| message: false
-#| echo: fenced
+#| echo: false
 felinos <-
   felinos |>
   rename(
@@ -59,14 +61,13 @@ felinos <-
     mes = month
   )
 
-felinos
 ```
 
 ```{r}
 #| label: definicion de la columna fecha
 #| warning: false
 #| message: false
-#| echo: fenced
+#| echo: false
 
   felinos |>
   mutate(fecha = as.Date(fecha, format = "%d/%m/%Y"))
@@ -77,6 +78,7 @@ Una vez seleccionados los datos de interés se generó una tabla dinámica con l
 #| label: tabla de felinos en cr
 #| warning: false
 #| message: false
+#| code-fold: true
 
 felinos|> 
   dplyr::select(especies, provincia, localidad, fecha) |>
@@ -92,7 +94,7 @@ Tabla 1. Registros de las especies de felinos por fecha y localidad.
 #| label: separacion de la fecha
 #| warning: false
 #| message: false
-#| echo: fenced
+#| echo: false
 felinos <-
   felinos |>
   mutate(year = as.numeric(format(fecha,'%Y'))) |>
@@ -106,6 +108,7 @@ Seguidamente se generó un gráfico de barras (Fig. 1) con la ocurrencia de las 
 #| label: grafico de especies por mes
 #| warning: false
 #| message: false
+#| code-fold: true
 
 grafico_especies_mes <-
 felinos |>
@@ -138,9 +141,11 @@ Figura 1. Ocurrencia mensual de especies de felinos en Costa Rica.
 Posteriormente se cargo la capa shape de las áreas silestres protegidas y se visualizó junto con la capa shape de la línea continental de Costa Rica, obtenida del Atlas de Costa Rica del TEC 2011. 
 ```{r}
 #| label: SF conjunto de funciones para datos vectoriales, estándar Simple Features.
+#| code-fold: true
+#| output: false
 #| warning: false
 #| message: false
-#| echo: fenced
+
 library(sf)
 #Carga de shape de áreas protegidas
 ASP <-
@@ -158,6 +163,10 @@ ASP <-
 ```
 
 ```{r}
+#| label: Plot de áres protejidas de Costa Rica
+#| warning: false
+#| message: false
+#| code-fold: true
 
 plot(ASP$geometry, 
     extent = st_bbox(c(xmin = -86.0, xmax = -82.3, ymin = 8.0, ymax = 11.3)),
@@ -198,12 +207,14 @@ library(rgdal)
 Seguidamente cargamos la capa ráster de altitud para Costa Rica.
 ```{r}
 #| label: Carga de la capa de altitud 
+#| output: false
 #| warning: false
 #| message: false
-#| echo: false
-altitud <- rast("C:/Users/oscar/Desktop/Tarea3/altitud.tif")
+#| code-fold: true
 
+altitud <- rast("C:/Users/oscar/Desktop/Tarea3/altitud.tif")
 st_crs(altitud)
+
 ```
 
 
@@ -212,7 +223,9 @@ st_crs(altitud)
 #| label: Paso de csv felinos a SF 
 #| warning: false
 #| message: false
-#| echo: false
+#| output: false
+#| code-fold: true
+
 shp_felinos <-
   st_as_sf(felinos, coords = c("long", "lat"))
 
@@ -221,15 +234,19 @@ st_crs(shp_felinos) <- 4326 #Asignación de coordenadas
 st_crs(shp_felinos)
 ```
 
-Finalmente se creó una visualización de los puntos reportamos de avistamientos de felinos, desplegados en en el mapa de Costa Rica, a través de capas de libre acceso Google street map y 
+Finalmente se creó una visualización de los puntos reportamos de avistamientos de felinos, desplegados en en el mapa de Costa Rica, a través de capas de libre acceso Google street map y CartoDB.Positron tomado de [Leaftlet for R](https://rstudio.github.io/leaflet/basemaps.html).
 ```{r}
+#| label: Mapa de felinos en Costa Rica
+#| warning: false
+#| message: false
+#| code-fold: true
 leaflet() |>
   setView(# centro y nivel inicial de acercamiento
     lng = -84.19452,
     lat = 9.572735,
-    zoom = 8) |>
+    zoom = 6) |>
   addTiles(group = "OpenStreetMap") |>
-  addProviderTiles(providers$Esri.NatGeoWorldMap)|>
+  addProviderTiles(providers$CartoDB.Positron)|>
   addRasterImage(raster(altitud))|>
   addPolygons(
     # capa de áreas silvestres protegidas (polígonos)
@@ -254,7 +271,7 @@ leaflet() |>
     )
   ) |>
   addLayersControl(
-    baseGroups = c("OpenStreetMap", "Esri.NatGeoWorldMap"),
+    baseGroups = c("OpenStreetMap", "CartoDB.Positron"),
     overlayGroups = c("Felinos", "altitud", "ASP")) |> # control de capas
   addResetMapButton() |> # botón de reinicio
   addSearchOSM() |> # búsqueda en OSM
