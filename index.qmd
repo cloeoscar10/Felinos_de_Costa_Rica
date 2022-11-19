@@ -72,7 +72,7 @@ felinos <-
   felinos |>
   mutate(fecha = as.Date(fecha, format = "%d/%m/%Y"))
 ```
-Una vez seleccionados los datos de interés se generó una tabla dinámica con las especies de felino por localidad y fecha del reporte de este avistamiento (Tab. 1).
+Una vez seleccionados los datos de interés se generó una tabla dinámica con las especies de felinos por localidad y fecha del reporte de este avistamiento (Tab. 1).
 
 ```{r}
 #| label: tabla de felinos en cr
@@ -204,7 +204,7 @@ library(rgdal)
 
 ```
 
-Seguidamente cargamos la capa ráster de altitud para Costa Rica.
+Posteriormente cargamos la capa ráster de altitud para Costa Rica.
 ```{r}
 #| label: Carga de la capa de altitud 
 #| output: false
