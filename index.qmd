@@ -1,6 +1,6 @@
 ---
 title: "Index"
-author: "Oscar Vásquez-Bolaños"
+author: "Oscar Vásquez-Bolaños and Rosario Ureña"
 format: html
 editor: visual
 ---
